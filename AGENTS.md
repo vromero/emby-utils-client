@@ -2,7 +2,7 @@
 
 ## What this repo is
 
-Standalone npm package `@emby-utils/client`: a typed Emby HTTP client driven by the Emby OpenAPI spec. Siblings `emby-utils-mcp` (MCP server) and `emby-utils-cli` (CLI) depend on this package via npm. They live in separate GitHub repos under the same `vromero` org.
+Standalone npm package `@emby-utils/client`: a typed Emby HTTP client driven by the Emby OpenAPI spec. Siblings `emby-utils-mcp` (MCP server) and `emby-utils-cli` (CLI) depend on this package as a **GitHub-hosted git dependency** (`github:vromero/emby-utils-client#<tag|sha>`), not from the npm registry. All three live in separate GitHub repos under the same `vromero` org.
 
 ## Setup & Environment
 
@@ -57,10 +57,28 @@ The official SDK lives at [MediaBrowser/Emby.ApiClients](https://github.com/Medi
 
 **Read-only reference:** the generated `Clients/JavaScript/src/model/*.js` files in the upstream repo are a useful catalogue of every DTO field Emby returns. Use them as a reference when widening `src/types.ts`. Do not vendor them.
 
-## Publishing
+## Distribution
 
-- `publishConfig.access: "public"`. Versioning via **changesets**.
-- Flow: `npx changeset` → describe the change → `npm run version` → `npm run release:dry` → `npm run release`.
+This package is **not** published to npm. Consumers install it via git:
+
+```bash
+npm install github:vromero/emby-utils-client#<tag-or-sha>
+```
+
+Key mechanics:
+
+- `prepare` runs `npm run build` during `npm install`, so git-installed copies
+  include the built `dist/` and the generated operation registry. Husky is
+  invoked in the same hook with `|| true` so consumer installs (no `.git`) don't
+  fail.
+- `files` in `package.json` controls what ends up in `node_modules` after npm
+  packs the cloned repo. Keep `dist`, `spec`, `scripts`, and `README.md` there.
+- Cutting a release = creating a **git tag** on `main` (e.g. `v0.2.0`).
+  Bump the `version` in `package.json` in the same commit and push the tag.
+  Consumers pin to that tag in their dependency spec.
+- The `publishConfig.access: "public"` field and the `release` / `release:dry`
+  scripts are retained for optionality only; leave them untouched unless you
+  start publishing to npm.
 
 ## CI
 
