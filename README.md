@@ -12,6 +12,8 @@ streaming for binary endpoints.
 npm install @emby-utils/client
 ```
 
+Requires Node.js >= 22.13. ESM-only.
+
 ## Usage
 
 ```ts
@@ -27,17 +29,6 @@ const info = await client.callOperation("getSystemInfo");
 const episodes = await client.callOperation("getItems", {
   queryParams: { IncludeItemTypes: "Episode", SearchTerm: "severance" },
 });
-
-// Walk every item across pages:
-for await (const item of client.paginate("getItems", { pageSize: 100 })) {
-  console.log(item.Name);
-}
-
-// Fetch a binary endpoint as a Node stream:
-const stream = await client.stream("getItemsByIdImagesByType", {
-  pathParams: { Id: "abc", Type: "Primary" },
-});
-stream.pipe(process.stdout);
 ```
 
 ### Authentication
@@ -53,6 +44,53 @@ const { AccessToken } = await client.loginWithPassword({
   username: "alice",
   password: "secret",
 });
+```
+
+### First-run (startup wizard)
+
+The Emby startup-wizard endpoints are not in the OpenAPI spec. They are exposed
+as dedicated methods and work against an un-initialized server (no auth
+required). `isStartupComplete()` deliberately strips auth so it can reliably
+detect completion on a server that would otherwise accept an admin token.
+
+```ts
+const client = new EmbyClient("http://emby.local:8096", ""); // no key yet
+if (!(await client.isStartupComplete())) {
+  await client.postStartupConfiguration({
+    UICulture: "en-US",
+    MetadataCountryCode: "US",
+    PreferredMetadataLanguage: "en",
+  });
+  await client.postStartupUser({ Name: "alice", Password: "secret" });
+  await client.postStartupComplete();
+}
+```
+
+### Idempotent library creation
+
+`POST /Library/VirtualFolders` is not idempotent — calling it twice creates a
+duplicate. `addLibrary()` checks the existing virtual folders first:
+
+```ts
+const result = await client.addLibrary({
+  name: "Movies",
+  path: "/data/movies",
+  collectionType: "movies",
+});
+// { created: true } on first run, { created: false, existing: {...} } thereafter.
+```
+
+### Pagination & streaming
+
+```ts
+for await (const item of client.paginate("getItems", { pageSize: 100 })) {
+  console.log(item.Name);
+}
+
+const stream = await client.stream("getItemsByIdImagesByType", {
+  pathParams: { Id: "abc", Type: "Primary" },
+});
+stream.pipe(process.stdout);
 ```
 
 ### Retry policy
@@ -81,6 +119,30 @@ import { operations } from "@emby-utils/client";
 console.log(Object.keys(operations).length); // 447
 console.log(operations.getSystemInfo);
 // { operationId: "getSystemInfo", method: "GET", path: "/System/Info", ... }
+```
+
+The operation registry is also available at a zero-side-effect subpath, so
+tools that only need the spec metadata don't have to load axios:
+
+```ts
+import { operations } from "@emby-utils/client/operations";
+```
+
+### Detecting errors
+
+`axios`'s type guard is re-exported so consumers don't need a direct
+dependency on axios:
+
+```ts
+import { isAxiosError } from "@emby-utils/client";
+
+try {
+  await client.callOperation("getSystemInfo");
+} catch (err) {
+  if (isAxiosError(err) && err.response?.status === 401) {
+    // handle unauthenticated
+  }
+}
 ```
 
 ## Notes
