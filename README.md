@@ -8,33 +8,11 @@ streaming for binary endpoints.
 
 ## Install
 
-This package is not published to npm. Install it directly from GitHub:
-
 ```bash
-# Latest `main`
-npm install github:vromero/emby-utils-client
-
-# Pinned to a tag or commit (recommended for reproducible builds)
-npm install github:vromero/emby-utils-client#v0.1.0
-npm install github:vromero/emby-utils-client#<commit-sha>
-```
-
-Or add it to your `package.json` dependencies directly:
-
-```json
-{
-  "dependencies": {
-    "@emby-utils/client": "github:vromero/emby-utils-client#v0.1.0"
-  }
-}
+npm install @emby-utils/client
 ```
 
 Requires Node.js >= 22.13. ESM-only.
-
-> **Note** — npm clones the repo and runs the `prepare` script during install,
-> which builds the package (regenerates the operation registry and compiles
-> TypeScript). This adds a few seconds vs. a plain npm install; subsequent
-> installs are cached.
 
 ## Usage
 

@@ -2,7 +2,7 @@
 
 ## What this repo is
 
-Standalone npm package `@emby-utils/client`: a typed Emby HTTP client driven by the Emby OpenAPI spec. Siblings `emby-utils-mcp` (MCP server) and `emby-utils-cli` (CLI) depend on this package as a **GitHub-hosted git dependency** (`github:vromero/emby-utils-client#<tag|sha>`), not from the npm registry. All three live in separate GitHub repos under the same `vromero` org.
+Standalone npm package `@emby-utils/client`: a typed Emby HTTP client driven by the Emby OpenAPI spec. Published to the public npm registry under the `@emby-utils` scope. Siblings `emby-utils-mcp` (MCP server) and `emby-utils-cli` (CLI) depend on it as a normal npm dependency. All three live in separate GitHub repos under the same `vromero` org.
 
 ## Setup & Environment
 
@@ -59,26 +59,42 @@ The official SDK lives at [MediaBrowser/Emby.ApiClients](https://github.com/Medi
 
 ## Distribution
 
-This package is **not** published to npm. Consumers install it via git:
+Published to npm as `@emby-utils/client` (public, under the `@emby-utils` org).
+
+Release flow:
+
+1. Update `version` in `package.json` on `main`.
+2. Commit and push.
+3. Create and push a git tag matching the version: `git tag v0.2.0 && git push origin v0.2.0`.
+4. The `release` GitHub Actions workflow (`.github/workflows/release.yml`)
+   triggers on `v*.*.*` tags. It runs lint/format/test/build and then
+   `npm publish --access public --provenance` using the `NPM_TOKEN` repo
+   secret. Publish provenance is signed via OIDC (GitHub's `id-token: write`
+   permission) and attached to the tarball on npm.
+5. The workflow also creates a GitHub Release from the tag.
+
+Dry-run locally before tagging:
 
 ```bash
-npm install github:vromero/emby-utils-client#<tag-or-sha>
+npm run release:dry   # builds + `npm publish --dry-run`
 ```
 
-Key mechanics:
+Mechanics:
 
-- `prepare` runs `npm run build` during `npm install`, so git-installed copies
-  include the built `dist/` and the generated operation registry. Husky is
-  invoked in the same hook with `|| true` so consumer installs (no `.git`) don't
-  fail.
-- `files` in `package.json` controls what ends up in `node_modules` after npm
-  packs the cloned repo. Keep `dist`, `spec`, `scripts`, and `README.md` there.
-- Cutting a release = creating a **git tag** on `main` (e.g. `v0.2.0`).
-  Bump the `version` in `package.json` in the same commit and push the tag.
-  Consumers pin to that tag in their dependency spec.
-- The `publishConfig.access: "public"` field and the `release` / `release:dry`
-  scripts are retained for optionality only; leave them untouched unless you
-  start publishing to npm.
+- `prepack` builds the package, so `npm publish` always ships a fresh
+  `dist/`. `prepare` only sets up husky for local dev — git installs are no
+  longer supported.
+- `files` in `package.json` controls tarball contents: `dist`, `spec`,
+  `scripts`, `README.md`.
+- `publishConfig.access: "public"` is required because the package is scoped
+  (`@emby-utils/...`); scoped packages default to private.
+
+Rotating the npm token:
+
+```bash
+gh secret set NPM_TOKEN --repo vromero/emby-utils-client
+# paste the new token on stdin
+```
 
 ## CI
 
