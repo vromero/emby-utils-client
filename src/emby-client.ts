@@ -1,6 +1,7 @@
-﻿import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, isAxiosError } from "axios";
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, isAxiosError } from "axios";
 import { operations, OperationSpec } from "./generated/operations.js";
 import type { ResponseFor, VirtualFolderInfo } from "./types.js";
+import { VERSION } from "./version.js";
 import {
   getStartupConfiguration,
   isStartupComplete,
@@ -130,7 +131,7 @@ export class EmbyClient {
   }): Promise<{ AccessToken: string; User?: unknown; ServerId?: string }> {
     const authHeader =
       args.headers?.["X-Emby-Authorization"] ??
-      'MediaBrowser Client="emby-utils", Device="emby-utils-client", DeviceId="emby-utils-client", Version="0.1.0"';
+      `MediaBrowser Client="emby-utils", Device="emby-utils-client", DeviceId="emby-utils-client", Version="${VERSION}"`;
     const res = await this.http.request<{
       AccessToken: string;
       User?: unknown;

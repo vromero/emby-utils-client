@@ -1,4 +1,5 @@
 export { EmbyClient } from "./emby-client.js";
+export { VERSION } from "./version.js";
 // Re-exported so consumers (mcp server, cli) can detect axios errors without
 // taking a direct dep on axios.
 export { isAxiosError } from "axios";
