@@ -1,6 +1,6 @@
 {
   "name": "@emby-utils/client",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Typed Emby HTTP client driven by the official Emby OpenAPI spec (447 operations).",
   "type": "module",
   "main": "./dist/index.js",
