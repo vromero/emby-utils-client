@@ -15,8 +15,11 @@ import {
 export interface AddLibraryArgs {
   /** Library display name (e.g. "Movies"). */
   name: string;
-  /** Container-visible path that the Emby server can read. */
-  path: string;
+  /**
+   * Container-visible paths that the Emby server can read.
+   * Provide a single string or an array of strings for multi-folder libraries.
+   */
+  paths: string | string[];
   /** Emby collection type: `movies`, `tvshows`, `music`, `books`, `mixed`, ... */
   collectionType?: string;
   /** Extra options merged into Emby's LibraryOptions DTO. */
@@ -198,11 +201,14 @@ export class EmbyClient {
     const match = existing.find((lib) => lib.Name === args.name);
     if (match) return { created: false, existing: match };
 
+    const pathInfos = (Array.isArray(args.paths) ? args.paths : [args.paths]).map((p) => ({
+      Path: p,
+    }));
     const libraryOptions: Record<string, unknown> = {
       EnableRealtimeMonitor: true,
       EnablePhotos: true,
       ...(args.libraryOptions ?? {}),
-      PathInfos: [{ Path: args.path }],
+      PathInfos: pathInfos,
     };
     await this.request("POST", "/Library/VirtualFolders", {
       body: { LibraryOptions: libraryOptions },

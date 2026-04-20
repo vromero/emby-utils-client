@@ -99,7 +99,7 @@ describe("EmbyClient.addLibrary", () => {
     const client = new EmbyClient(EMBY_HOST, "tok");
     const result = await client.addLibrary({
       name: "Movies",
-      path: "/data/movies",
+      paths: "/data/movies",
       collectionType: "movies",
     });
     expect(result.created).toBe(true);
@@ -122,7 +122,7 @@ describe("EmbyClient.addLibrary", () => {
       })
     );
     const client = new EmbyClient(EMBY_HOST, "tok");
-    const result = await client.addLibrary({ name: "Movies", path: "/data/movies" });
+    const result = await client.addLibrary({ name: "Movies", paths: "/data/movies" });
     expect(result.created).toBe(false);
     expect(result.existing?.Name).toBe("Movies");
     expect(postCount).toBe(0);
@@ -140,11 +140,35 @@ describe("EmbyClient.addLibrary", () => {
     const client = new EmbyClient(EMBY_HOST, "tok");
     await client.addLibrary({
       name: "TV",
-      path: "/data/tv",
+      paths: "/data/tv",
       collectionType: "tvshows",
       refreshLibrary: true,
     });
     expect(seenQuery!.get("collectionType")).toBe("tvshows");
     expect(seenQuery!.get("refreshLibrary")).toBe("true");
+  });
+
+  it("supports multiple paths per library", async () => {
+    const calls: Array<{ name: string; body: any }> = [];
+    server.use(
+      http.get(`${EMBY_HOST}/emby/Library/VirtualFolders`, () => HttpResponse.json([])),
+      http.post(`${EMBY_HOST}/emby/Library/VirtualFolders`, async ({ request }) => {
+        const u = new URL(request.url);
+        calls.push({ name: u.searchParams.get("name")!, body: await request.json() });
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+    const client = new EmbyClient(EMBY_HOST, "tok");
+    const result = await client.addLibrary({
+      name: "Movies",
+      paths: ["/data/movies", "/data/movies-2", "/data/movies-3"],
+      collectionType: "movies",
+    });
+    expect(result.created).toBe(true);
+    expect(calls[0].body.LibraryOptions.PathInfos).toEqual([
+      { Path: "/data/movies" },
+      { Path: "/data/movies-2" },
+      { Path: "/data/movies-3" },
+    ]);
   });
 });
